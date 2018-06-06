@@ -9,7 +9,7 @@ library_function1() {
 
 library_function2() {
 
-	echo -n "test return"
+	echo -n "test"
 	return 1
 }
 
@@ -19,28 +19,33 @@ library_function2() {
 
 TOTAL_TESTS=2
 
+# assign your testcase set up function to similar variable.
 PREPARE_TEST_CASE1="prepare_test_case1"
 PREPARE_TEST_CASE2="prepare_test_case2"
 
 # "$function_name  $number_of_function_args  $function_args_in_order  $expected_return_code $whether_return_value_validation_required"
 TEST_CASE1="library_function1  0  0  0"
-TEST_CASE2="library_function2  2  cn-prov.ooma.com  file  1  1"
+TEST_CASE2="library_function2  2  test  file  1  1"
 # Add more test cases here.
 
+# Assign post test case function to similar variable.
 POST_TEST_CASE1="post_test_case1"
 
 expected_return_value_test2() {
 
-	echo -n "test return"
+	echo -n "test"
 	return 0
 }
 
+# Do all the setup required for the test case here.
 prepare_test_case1() {
 	echo "prepare for test case"
 }
 
+# test fails if this function returns non-zero code.
 post_test_case1() {
 	echo "post test case execution"
+	return 0
 }
 
 # Uncomment below line to print debug logs from shell_unit_tester library

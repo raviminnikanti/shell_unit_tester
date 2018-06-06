@@ -1,7 +1,8 @@
 #!/bin/sh
 
-#METHOD_POSITION=1
-#RET_STATUS_POSITION=2
+# software version.
+VERSION=2
+
 ARG_POSITION=2
 
 ##############################################
@@ -75,10 +76,17 @@ exec_post_test_case() {
 	local value
 
 	value=$(eval $preparation 2>&-)
+	local rc=$?
+	if [ $rc -ne 0 ]; then
+		ut_logger error "test$1: post_test_case return non-zero error code($rc)"
+		return 1
+	fi 
 	
 	if [ -n "$value" ]; then
-		ut_logger debug prep_test_case"$1" returned $value
+		ut_logger debug post_test_case"$1" returned $value
 	fi
+
+	return 0
 }
 
 # expects two arguments.
@@ -93,7 +101,7 @@ validate_return_value() {
 	ut_logger debug expected_val : $expected_val
 
 	if [ x"$expected_val" != x"$obtained_val" ]; then
-		ut_logger error "test $1 failed. Expected return : $expected_val, Obtained return : $obtained_val"
+		ut_logger error "test$1: failed. Expected return : $expected_val, Obtained return : $obtained_val"
 		return 1
 	fi
 
@@ -134,16 +142,16 @@ execute_test_case() {
 
 	ut_logger debug expected return status is: $expected_ret_status
 	ut_logger debug is_return_expected $is_return_expected
+	local value
 
-	eval \$function_name $function_args 2>&1 > /dev/null
+	value=$(eval \$function_name $function_args 2>&-)
 	rc=$?
 	if [ $rc -ne $expected_ret_status ]; then
-		ut_logger error "test $test_number: return code: $rc, expected code: $expected_ret_status"
+		ut_logger error "test$test_number: $function_name. return code: $rc, expected code: $expected_ret_status"
 		return 1
 	fi
 	
 	if [ x"$is_return_expected" = x"1" ]; then
-		local value="$(eval \$function_name $function_args)"
 		validate_return_value $test_number "$value"
 		if [ $? -ne 0 ]; then
 			return 1
@@ -162,14 +170,19 @@ run_test_suite() {
 		local test_case="$(get_test_case $i)"
 		
 		exec_prep_test_case $i
+
 		execute_test_case $i "$test_case"
-		if [ $? -eq 0 ]; then
+		local status=$?
+		
+		exec_post_test_case $i
+		local post_status=$?
+
+		if [ $status -eq 0 ] && [ $post_status -eq 0 ]; then
 			passed=$(($passed+1))
 		else
 			failed=$(($failed+1))
 		fi
 	
-		exec_post_test_case $i
 		i=$(($i+1))
 	done
 
