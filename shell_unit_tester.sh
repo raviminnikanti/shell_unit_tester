@@ -35,6 +35,51 @@ get_test_case() {
 	eval echo -n \$TEST_CASE${1}
 }
 
+# Some test cases may need some setup or initialization before executing.
+# For example: To test a failure case of a function, we need to first create that scenrio.
+# 
+exec_prep_test_case() {
+	if [ $# -ne 1 ]; then
+		ut_logger error "get_test_case: Coding error. Single argument expected"
+		exit 1
+	fi
+
+	local preparation="$(eval echo -n \$PREPARE_TEST_CASE${1})"
+	if [ -z "$preparation" ]; then
+		# No preparation required for this test case
+		return 0
+	fi
+
+	local value
+
+	value=$(eval $preparation 2>&-)
+	
+	if [ -n "$value" ]; then
+		ut_logger debug prep_test_case"$1" returned $value
+	fi
+}
+
+exec_post_test_case() {
+	if [ $# -ne 1 ]; then
+		ut_logger error "get_test_case: Coding error. Single argument expected"
+		exit 1
+	fi
+
+	# No need to escape dollar here. Don't remember why I have done it at first place.
+	local preparation="$(eval echo -n \$POST_TEST_CASE${1})"
+	if [ -z "$preparation" ]; then
+		# Nothing to do post test case execution.
+		return 0
+	fi
+	
+	local value
+
+	value=$(eval $preparation 2>&-)
+	
+	if [ -n "$value" ]; then
+		ut_logger debug prep_test_case"$1" returned $value
+	fi
+}
 
 # expects two arguments.
 # $1 ... test case number. Same as number in the testcase variable name.
@@ -44,7 +89,7 @@ validate_return_value() {
 
 	ut_logger debug values in validate_return_value $1 $obtained_val
 
-	local expected_val="$(eval expected_return_value_test_${1})"
+	local expected_val="$(eval expected_return_value_test${1})"
 	ut_logger debug expected_val : $expected_val
 
 	if [ x"$expected_val" != x"$obtained_val" ]; then
@@ -116,13 +161,15 @@ run_test_suite() {
 	while [ $i -le $TOTAL_TESTS ]; do
 		local test_case="$(get_test_case $i)"
 		
+		exec_prep_test_case $i
 		execute_test_case $i "$test_case"
 		if [ $? -eq 0 ]; then
 			passed=$(($passed+1))
 		else
 			failed=$(($failed+1))
 		fi
-
+	
+		exec_post_test_case $i
 		i=$(($i+1))
 	done
 
