@@ -1,52 +1,52 @@
-This README file is to explain how to write a test case and test your library functions in all possible conditions.
-See test/* directory for an example.
+This README explains how to write test cases and test shell script libraries using shell_unit_tester
 
-Function names that need to be tested should be assigned to a specific format named variable along with the argument to be passed and expected return code
+Also, see test directory for an example on how to use shell_unit_tester.
 
-Variables names are numbered sequencially.
+Writing test cases using shell_unit_tester:
+1. A variable called TOTAL_TESTS should contain the total count of test cases.
+2. A test case is a name formatted variable which contain a string with all the details about the shell function that is under test.
+3. A test case variable is formatted as TEST_CASE${number}. where ${number} is the test case number
+4. All the test case variable names are numbered sequencially. 
+5. For example, variable name of test case 1 is TEST_CASE1.
+6. Value of a each test case contains blank separated arguements.
 
-Below is how you define test cases:
-TEST_CASE1="function1  2  arg_1 arg_2  0 1"
-
-1. Here function1 is the name of the function that is under test. 
-2. It takes 2 arguments arg_1, arg_2 these will be passed to function1 while executing.
+A test case explained with an example:
+1. A example test case: TEST_CASE1="function1  2  arg_1 arg_2  0 1"
+2. Here function1 is the name of the function that is under test. 
+3. It takes 2 arguments arg_1, arg_2 these will be passed to function1 while testing it.
 3. 0 is the expected return code of this function.
 4. 1 says that this function needs a return value validation. See below to understand how to do return value validation.
 
 
-To validate the return value of function under test, one should define a specific format named method that returns expected return value.
-Above example args says that this test case needs a return value validation. So, define a function that returns expected return value.
-expected_return_value_test1() {
-}
+Shell function return value validation:
+1. To validate the return value of function that is under test, one should define a specific name formatted shell function 
+2. This function should return the expected value of the test case.
+3. shell_unit_tester invokes this function during test run.
+4. Here is an example function for TEST_CASE1
+   expected_return_value_test1() {
+   	echo -n "test_value"
+   }
+5. If shell function defined as TEST_CASE1 also returns return value "test_value", test succeeds. Otherwise fails.
 
 
-Stepwise explanation to add a new test case to test a shell library function:
-1. Each variable name prefixed with "TEST_CASE" represents a test case and should be suffixed with the testcase number.
-   
-   Example: Name of first testcase variable will be TEST_CASE1
-            Name of third testcase variable will be TEST_CASE3
+preparing a test case (optional):
+1. Some functions might need a set up before testing.
+2. A specific name formatted function can be defined in which required set up can be done.
+3. shell_unit_tester invokes this preparation function before executing that particular test case.
+4. Here is a name formatted preparation function for test case 1
+   prepare_test_case1() {
+   	echo "Setup for TEST_CASE1"
+   }
 
-2. (Optional): If a test case need a particular setup, implement a function which does the setup and assign it to a formatted variable
-   
-   Example: PREPARE_TEST_CASE{i}="preparation_for_test_case1"
-   Where ${i} should be the test case number same as in point 1 and name of the function can be anything assigned to this variable.
-
-3. Similiar to PREPARE_TEST_CASE, if you want to revert the setup you did for the test case, then you can write a function with the revert 
-   logic and assign it to a formatted variable:
-   
-   Example: PREPARE_TEST_CASE{i}="preparation_for_test_case1"
-   Where ${i} should be the test case number same as in point 1 and name of the function can be anything assigned to this variable.
-
-4. Test case should follow a specific format:
-   $function_name  $number_of_function_args  $function_args_in_order  $expected_return_code $whether_return_value_validation_required
-   
-   Example: If the function name is test_function and it expects two arguments and return code zero and a return value of "zoo" 
-   then the test case will be:
-   TEST_CASE1="test_function  2  arg_1 arg_2  1"
-
-5. To validate the return value of a function, define your own function suffixed with test case number. 
-   The function name must start with "expected_return_value_test" suffixed with the test case number. 
-   See example below:
-     expected_return_value_test1() {
-        echo -n $expected_return_value
-     }
+Post test de-setup or validation(optional):
+1. Some shell functions may need some validation after the test case execution to verify that function has done its task successfully.
+2. A specific name formatted function can be defined which can do this.
+3. shell_unit_tester invokes this post test case function after executing the test case.
+4. If no function is defined, shell_unit_tester will just ignore.
+5. Here is a name formatted post test case function for test case 1
+   post_test_case1() {
+	echo "Here, revert any set up done during preparation"
+	# return code validation is performed by shell_unit_tester.
+	# test case will be failed, on a non-zero return code.
+	return 0
+   }

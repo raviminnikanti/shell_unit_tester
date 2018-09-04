@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # software version.
-VERSION=2
+VERSION=3
 
 ARG_POSITION=2
 
@@ -45,11 +45,9 @@ exec_prep_test_case() {
 		exit 1
 	fi
 
-	local preparation="$(eval echo -n \$PREPARE_TEST_CASE${1})"
-	if [ -z "$preparation" ]; then
-		# No preparation required for this test case
-		return 0
-	fi
+	local preparation="$(eval echo -n prepare_test_case${1})"
+	# No preparation required for this test case
+	! type "$preparation" > /dev/null 2>&1 && return 0
 
 	local value
 
@@ -66,16 +64,14 @@ exec_post_test_case() {
 		exit 1
 	fi
 
-	# No need to escape dollar here. Don't remember why I have done it at first place.
-	local preparation="$(eval echo -n \$POST_TEST_CASE${1})"
-	if [ -z "$preparation" ]; then
-		# Nothing to do post test case execution.
+	if ! type "post_test_case${1}" > /dev/null 2>&1 ; then
+		ut_logger debug "No preparation required for test case $1"
 		return 0
 	fi
-	
+
 	local value
 
-	value=$(eval $preparation 2>&-)
+	value=$(eval "post_test_case${1}" 2>&-)
 	local rc=$?
 	if [ $rc -ne 0 ]; then
 		ut_logger error "test$1: post_test_case return non-zero error code($rc)"
