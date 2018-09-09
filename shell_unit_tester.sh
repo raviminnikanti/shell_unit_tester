@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # software version.
-VERSION=3
+VERSION=4
 
 ARG_POSITION=2
 
@@ -17,19 +17,19 @@ ut_logger() {
 
 	local msg="$*"
 
-	echo $level "$msg"
+	echo $level "$msg" 1>&2
 
 }
 
 get_test_case() {
 
 	if [ $# -ne 1 ]; then
-		ut_logger error "get_test_case: Coding error. Single argument expected"
+		ut_logger error "get_test_case(): Coding error. Single argument expected"
 		exit 1
 	fi
 
 	if [ $1 -gt $TOTAL_TESTS ]; then
-		ut_logger error  "get_test_case: Argument passed should be in the range of total number of test cases"
+		ut_logger error  "get_test_case(): Argument passed should be in the range of total number of test cases"
 		exit 1
 	fi
 
@@ -41,45 +41,52 @@ get_test_case() {
 # 
 exec_prep_test_case() {
 	if [ $# -ne 1 ]; then
-		ut_logger error "get_test_case: Coding error. Single argument expected"
-		exit 1
+		ut_logger error "exec_prep_test_case(): Coding error. Single argument expected"
+		return 1
 	fi
 
-	local preparation="$(eval echo -n prepare_test_case${1})"
-	# No preparation required for this test case
+	local preparation
+	preparation="$(eval echo -n prepare_test_case${1})"
+	# if no function found it mean no preparation required for this test case
 	! type "$preparation" > /dev/null 2>&1 && return 0
 
 	local value
-
-	value=$(eval $preparation 2>&-)
+	value="$(eval $preparation 2>&-)"
 	
 	if [ -n "$value" ]; then
-		ut_logger debug prep_test_case"$1" returned $value
+		ut_logger debug "$preparation(): returned $value"
 	fi
+
+	return 0
 }
 
 exec_post_test_case() {
-	if [ $# -ne 1 ]; then
-		ut_logger error "get_test_case: Coding error. Single argument expected"
-		exit 1
+	if [ $# -ne 2 ]; then
+		ut_logger error "exec_post_test_case(): Coding error. Exactly two arguments expected"
+		return 1
 	fi
 
-	if ! type "post_test_case${1}" > /dev/null 2>&1 ; then
-		ut_logger debug "No preparation required for test case $1"
+	local func_name="post_test_case${1}"
+	local func_arg="$2"
+
+	if ! type $func_name > /dev/null 2>&1 ; then
+		ut_logger debug "No $func_name defined. No post actions required for test case $1"
 		return 0
 	fi
 
 	local value
 
-	value=$(eval "post_test_case${1}" 2>&-)
+	ut_logger debug "exec_post_test_case(): $func_name args: $func_arg"
+
+	value=$(eval \$func_name $func_arg 2>&-)
 	local rc=$?
 	if [ $rc -ne 0 ]; then
-		ut_logger error "test$1: post_test_case return non-zero error code($rc)"
+		ut_logger error "$func_name() return non-zero error code($rc)"
 		return 1
 	fi 
 	
 	if [ -n "$value" ]; then
-		ut_logger debug post_test_case"$1" returned $value
+		ut_logger debug "$func_name returned $value"
 	fi
 
 	return 0
@@ -91,13 +98,11 @@ exec_post_test_case() {
 validate_return_value() {
 	local obtained_val="$2"
 
-	ut_logger debug values in validate_return_value $1 $obtained_val
-
 	local expected_val="$(eval expected_return_value_test${1})"
-	ut_logger debug expected_val : $expected_val
+	ut_logger debug "validate_return_value(): expected_val : $expected_val"
 
 	if [ x"$expected_val" != x"$obtained_val" ]; then
-		ut_logger error "test$1: failed. Expected return : $expected_val, Obtained return : $obtained_val"
+		ut_logger error "testcase $1 failed. Expected return : $expected_val, Obtained return : $obtained_val"
 		return 1
 	fi
 
@@ -111,24 +116,24 @@ execute_test_case() {
 	fi
 	
 	local rc
-	local test_number=$1
+	local test_number="$1"
 	local testcase="$2"
 
 	local function_name=$(echo -n "$testcase" | awk '{print $1}')
-	ut_logger debug function_name $function_name
+	
+	ut_logger debug "function_name $function_name"
 
 	local total_args=$(echo -n "$testcase" | awk '{print $2}')
-	ut_logger debug testcase: $test_number number of function args $total_args
+	ut_logger debug "test_case $test_number: arguments $total_args"
 
 	local function_args=""
 
 	if [ $total_args -ne 0 ]; then
-		ut_logger debug $1 function has arguments to pass
 		local range=$(( $ARG_POSITION+1 ))"-"$(( $ARG_POSITION+$total_args ))
 		function_args=$(echo -n "$testcase" | cut -d" " -f$range)
 	fi
 
-	ut_logger debug $test_number args: $function_args
+	ut_logger debug "test_case $test_number: arguments: $function_args"
 
 	local ret_status_position=$(( $ARG_POSITION+$total_args+1 ))
 	local ret_position=$(( $ARG_POSITION+$total_args+2 ))
@@ -136,14 +141,14 @@ execute_test_case() {
 	local expected_ret_status=$(echo -n "$testcase" | cut -d" " -f$ret_status_position)
 	local is_return_expected=$(echo -n "$testcase" | cut -d" " -f$ret_position)
 
-	ut_logger debug expected return status is: $expected_ret_status
-	ut_logger debug is_return_expected $is_return_expected
+	ut_logger debug "test_case $test_number: expected return code: $expected_ret_status"
+	ut_logger debug "test_case $test_number: return value validation required: $is_return_expected"
 	local value
 
 	value=$(eval \$function_name $function_args 2>&-)
 	rc=$?
 	if [ $rc -ne $expected_ret_status ]; then
-		ut_logger error "test$test_number: $function_name. return code: $rc, expected code: $expected_ret_status"
+		ut_logger error "test case $test_number: $function_name. return code: $rc, expected return code: $expected_ret_status"
 		return 1
 	fi
 	
@@ -154,34 +159,59 @@ execute_test_case() {
 		fi
 	fi
 
+	echo -n "$value"
 	return 0
+}
+
+get_test_case_name() {
+	local func_name="$(echo -n "$1" | awk '{print $1}')"
+	echo -n "$func_name"
 }
 
 run_test_suite() {
 	local passed=0
 	local failed=0
 	local i=1
+	local fail_tests
+
+	[ -z "$library_to_test" ] && return 1
+
+	. "$library_to_test"
+
 
 	while [ $i -le $TOTAL_TESTS ]; do
 		local test_case="$(get_test_case $i)"
 		
+		ut_logger debug "-----------------------------------------"
+		ut_logger debug "test case $i"
+		
 		exec_prep_test_case $i
 
-		execute_test_case $i "$test_case"
+		local ret_value="$(execute_test_case "$i" "$test_case")"
+
 		local status=$?
 		
-		exec_post_test_case $i
+		exec_post_test_case $i "$ret_value"
 		local post_status=$?
 
 		if [ $status -eq 0 ] && [ $post_status -eq 0 ]; then
-			passed=$(($passed+1))
+			passed=$((passed + 1))
 		else
-			failed=$(($failed+1))
+			fail_tests="$fail_tests ${i}:$(get_test_case_name "$test_case")"
+			failed=$((failed + 1))
 		fi
 	
 		i=$(($i+1))
 	done
 
 	ut_logger info "TOTAL: $TOTAL_TESTS PASSED: $passed FAILED: $failed"
-}
+	
+	[ $failed -eq 0 ] && return 0
 
+	ut_logger info "tests failed:"
+	for t in $fail_tests ; do
+		if [ ! -z "$t" ]; then
+			printf "\t%s $t\n"
+		fi
+	done
+}
