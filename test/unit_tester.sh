@@ -36,9 +36,12 @@ post_test_case2() {
 
 # Uncomment below line to print debug logs from shell_unit_tester library
 # Need a command line option, rather than a global variable.
-DEBUG_MODE=1
+DEBUG_MODE=0
 
-[ $# -eq 1 ] && [ "$1" = "-d" ] && set -x
+if [ $# -eq 1 ] && [ "$1" = "-d" ] ; then
+	DEBUG_MODE=1
+	set -x
+fi
 
 . $(pwd)/../shell_unit_tester.sh
 

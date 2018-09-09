@@ -3,12 +3,13 @@ This README explains how to write test cases and test shell script libraries usi
 Also, see test directory for an example on how to use shell_unit_tester.
 
 Writing test cases using shell_unit_tester:
-1. A variable called TOTAL_TESTS should contain the total count of test cases.
-2. A test case is a name formatted variable which contain a string with all the details about the shell function that is under test.
-3. A test case variable is formatted as TEST_CASE${number}. where ${number} is the test case number
-4. All the test case variable names are numbered sequencially. 
-5. For example, variable name of test case 1 is TEST_CASE1.
-6. Value of a each test case contains blank separated arguements.
+1. Assign the library to be tested to a variable called LIBRARY_TO_TEST.
+2. A variable called TOTAL_TESTS should contain the total count of test cases.
+3. A test case is a name formatted variable which contain a string with all the details about the shell function that is under test.
+4. A test case variable is formatted as TEST_CASE${number}. where ${number} is the test case number
+5. All the test case variable names are numbered sequencially. 
+6. For example, variable name of test case 1 is TEST_CASE1.
+7. Value of a each test case contains blank separated arguements.
 
 A test case explained with an example:
 1. A example test case: TEST_CASE1="function1  2  arg_1 arg_2  0 1"
@@ -50,3 +51,7 @@ Post test de-setup or validation(optional):
 	# test case will be failed, on a non-zero return code.
 	return 0
    }
+
+Logging un-tested shell functions:
+1. End of the test run, shell_unit_tester logs un-tested functions from the shell library.
+2. i.e., shell_unit_tester finds functions in shell library those have no test cases written.

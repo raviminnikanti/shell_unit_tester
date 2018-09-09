@@ -1,11 +1,7 @@
 #!/bin/sh
 
-# software version.
-VERSION=4
-
-ARG_POSITION=2
-
-##############################################
+# file_name: shell_unit_tester.sh
+# version: 5
 
 ut_logger() {
 	level=$1
@@ -16,13 +12,10 @@ ut_logger() {
 	fi
 
 	local msg="$*"
-
-	echo $level "$msg" 1>&2
-
+	echo "$msg" 1>&2
 }
 
 get_test_case() {
-
 	if [ $# -ne 1 ]; then
 		ut_logger error "get_test_case(): Coding error. Single argument expected"
 		exit 1
@@ -38,7 +31,6 @@ get_test_case() {
 
 # Some test cases may need some setup or initialization before executing.
 # For example: To test a failure case of a function, we need to first create that scenrio.
-# 
 exec_prep_test_case() {
 	if [ $# -ne 1 ]; then
 		ut_logger error "exec_prep_test_case(): Coding error. Single argument expected"
@@ -119,6 +111,8 @@ execute_test_case() {
 	local test_number="$1"
 	local testcase="$2"
 
+	local arg_position=2
+
 	local function_name=$(echo -n "$testcase" | awk '{print $1}')
 	
 	ut_logger debug "function_name $function_name"
@@ -129,14 +123,14 @@ execute_test_case() {
 	local function_args=""
 
 	if [ $total_args -ne 0 ]; then
-		local range=$(( $ARG_POSITION+1 ))"-"$(( $ARG_POSITION+$total_args ))
+		local range=$(( $arg_position + 1 ))"-"$(( $arg_position + $total_args ))
 		function_args=$(echo -n "$testcase" | cut -d" " -f$range)
 	fi
 
 	ut_logger debug "test_case $test_number: arguments: $function_args"
 
-	local ret_status_position=$(( $ARG_POSITION+$total_args+1 ))
-	local ret_position=$(( $ARG_POSITION+$total_args+2 ))
+	local ret_status_position=$(( $arg_position + $total_args + 1 ))
+	local ret_position=$(( $arg_position + $total_args + 2 ))
 
 	local expected_ret_status=$(echo -n "$testcase" | cut -d" " -f$ret_status_position)
 	local is_return_expected=$(echo -n "$testcase" | cut -d" " -f$ret_position)
@@ -168,11 +162,34 @@ get_test_case_name() {
 	echo -n "$func_name"
 }
 
+log_untested_functions() {
+	local all_tests="$1"
+	local library_name="$2"
+	local count=0
+
+	echo "log_untested: $library_name"
+
+	local all_func="$(grep -E "^ *[-_a-z0-9A-Z]* *[(][)]" "$library_name" | sed 's/#.*//g'| sed 's/[(){]//g')"
+
+	all_func="$(echo -n "$all_func" | tr '\n' ' ')"
+
+	for f in $all_func ; do
+		! type $f > /dev/null 2>&1 && continue
+		
+		if ! echo -n "$all_tests" | grep -q " $f " ; then
+			count=$((count + 1))
+			printf "\t%s $f\n" 1>&2
+		fi
+	done
+
+	ut_logger info "Total number of un-tested shell functions: $count"
+}
+
 run_test_suite() {
 	local passed=0
 	local failed=0
 	local i=1
-	local fail_tests
+	local fail_tests all_tests
 
 	[ -z "$library_to_test" ] && return 1
 
@@ -200,18 +217,27 @@ run_test_suite() {
 			fail_tests="$fail_tests ${i}:$(get_test_case_name "$test_case")"
 			failed=$((failed + 1))
 		fi
+
+		all_tests="$all_tests $(get_test_case_name "$test_case") "
 	
 		i=$(($i+1))
 	done
 
 	ut_logger info "TOTAL: $TOTAL_TESTS PASSED: $passed FAILED: $failed"
 	
-	[ $failed -eq 0 ] && return 0
+	if [ $failed -eq 0 ]; then
+		log_untested_functions "$all_tests" "$library_to_test"
+		return 0
+	fi
 
 	ut_logger info "tests failed:"
 	for t in $fail_tests ; do
 		if [ ! -z "$t" ]; then
-			printf "\t%s $t\n"
+			printf "\t%s $t\n" 1>&2
 		fi
 	done
+
+	ut_logger info "-----------------------------------------"
+
+	log_untested_functions "$all_tests" "$library_to_test"
 }

@@ -1,7 +1,7 @@
 
 Unit test shell libraries using shell_unit_tester.
 
-shell_unit_tester is implement in shell and tested on bash, dash and ash shells.
+shell_unit_tester is implement in shell and tested on dash and ash shells.
 
 A simple shell unit testing framework with an interface to easily write test cases.
 
