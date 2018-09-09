@@ -1,6 +1,6 @@
 #!/bin/sh
 
-library_to_test="./test_library.sh"
+LIBRARY_TO_TEST="./test_library.sh"
 
 # See README file for explanation about the framework and how to write test cases.
 
@@ -14,7 +14,7 @@ TEST_CASE2="library_function2  2  test  file  1  1"
 
 expected_return_value_test2() {
 
-	echo -n "test"
+	echo -n "test1"
 	return 0
 }
 
@@ -31,7 +31,7 @@ post_test_case1() {
 
 post_test_case2() {
 	echo -n "post test case execution 2 args: $1"
-	return 1
+	return 0
 }
 
 # Uncomment below line to print debug logs from shell_unit_tester library

@@ -94,7 +94,7 @@ validate_return_value() {
 	ut_logger debug "validate_return_value(): expected_val : $expected_val"
 
 	if [ x"$expected_val" != x"$obtained_val" ]; then
-		ut_logger error "testcase $1 failed. Expected return : $expected_val, Obtained return : $obtained_val"
+		ut_logger error "Test case $1 failed. Expected return value : $expected_val. Original return value : $obtained_val"
 		return 1
 	fi
 
@@ -167,11 +167,12 @@ log_untested_functions() {
 	local library_name="$2"
 	local count=0
 
-	echo "log_untested: $library_name"
-
 	local all_func="$(grep -E "^ *[-_a-z0-9A-Z]* *[(][)]" "$library_name" | sed 's/#.*//g'| sed 's/[(){]//g')"
 
 	all_func="$(echo -n "$all_func" | tr '\n' ' ')"
+
+	ut_logger info "UNTESTED FUNCTIONS:"
+	ut_logger info "-----------------------------------------"
 
 	for f in $all_func ; do
 		! type $f > /dev/null 2>&1 && continue
@@ -189,11 +190,16 @@ run_test_suite() {
 	local passed=0
 	local failed=0
 	local i=1
+	local ret_value
 	local fail_tests all_tests
 
-	[ -z "$library_to_test" ] && return 1
+	ut_logger info "TEST RUN:"
+	
+	ut_logger info "-----------------------------------------"
 
-	. "$library_to_test"
+	[ -z "$LIBRARY_TO_TEST" ] && return 1
+
+	. "$LIBRARY_TO_TEST"
 
 
 	while [ $i -le $TOTAL_TESTS ]; do
@@ -204,7 +210,7 @@ run_test_suite() {
 		
 		exec_prep_test_case $i
 
-		local ret_value="$(execute_test_case "$i" "$test_case")"
+		ret_value="$(execute_test_case "$i" "$test_case")"
 
 		local status=$?
 		
@@ -220,24 +226,29 @@ run_test_suite() {
 
 		all_tests="$all_tests $(get_test_case_name "$test_case") "
 	
-		i=$(($i+1))
+		i=$((i + 1))
 	done
+
+	ut_logger info "TEST RESULTS:"
+	
+	ut_logger info "-----------------------------------------"
 
 	ut_logger info "TOTAL: $TOTAL_TESTS PASSED: $passed FAILED: $failed"
 	
+	
 	if [ $failed -eq 0 ]; then
-		log_untested_functions "$all_tests" "$library_to_test"
+		log_untested_functions "$all_tests" "$LIBRARY_TO_TEST"
 		return 0
 	fi
-
-	ut_logger info "tests failed:"
+	
+	ut_logger info "-----------------------------------------"
+	
+	ut_logger info "TESTS FAILED:"
 	for t in $fail_tests ; do
 		if [ ! -z "$t" ]; then
 			printf "\t%s $t\n" 1>&2
 		fi
 	done
 
-	ut_logger info "-----------------------------------------"
-
-	log_untested_functions "$all_tests" "$library_to_test"
+	log_untested_functions "$all_tests" "$LIBRARY_TO_TEST"
 }
