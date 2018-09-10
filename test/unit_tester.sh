@@ -5,11 +5,11 @@ LIBRARY_TO_TEST="./test_library.sh"
 # See README file for explanation about the framework and how to write test cases.
 
 # total number of test cases.
-TOTAL_TESTS=2
+TOTAL_TESTS=3
 
 # "$function_name  $number_of_function_args  $function_args_in_order  $expected_return_code $whether_return_value_validation_required"
-TEST_CASE1="library_function1  0  0  0"
-TEST_CASE2="library_function2  2  test  file  1  1"
+TEST_CASE1="library_function1	0	0	0"
+TEST_CASE3="library_function2	2	test	file	1	1"
 # Add more test cases here.
 
 expected_return_value_test2() {

@@ -3,6 +3,8 @@
 # file_name: shell_unit_tester.sh
 # version: 5
 
+TAB="$(printf "\t")"
+
 ut_logger() {
 	level=$1
 	shift
@@ -26,7 +28,9 @@ get_test_case() {
 		exit 1
 	fi
 
-	eval echo -n \$TEST_CASE${1}
+	local case='$'TEST_CASE${1}
+	eval case="$case"
+	echo -n "$case"
 }
 
 # Some test cases may need some setup or initialization before executing.
@@ -90,7 +94,7 @@ exec_post_test_case() {
 validate_return_value() {
 	local obtained_val="$2"
 
-	local expected_val="$(eval expected_return_value_test${1})"
+	local expected_val="$(eval expected_return_value_test${1} 2>&-)"
 	ut_logger debug "validate_return_value(): expected_val : $expected_val"
 
 	if [ x"$expected_val" != x"$obtained_val" ]; then
@@ -111,29 +115,33 @@ execute_test_case() {
 	local test_number="$1"
 	local testcase="$2"
 
+	ut_logger debug "test case $testcase"
+
 	local arg_position=2
 
-	local function_name=$(echo -n "$testcase" | awk '{print $1}')
+	local function_name="$(echo -n "$testcase" | awk -F"${TAB}" '{print $1}')"
 	
 	ut_logger debug "function_name $function_name"
 
-	local total_args=$(echo -n "$testcase" | awk '{print $2}')
+	local total_args="$(echo -n "$testcase" | awk -F"${TAB}" '{print $2}')"
 	ut_logger debug "test_case $test_number: arguments $total_args"
 
 	local function_args=""
 
 	if [ $total_args -ne 0 ]; then
 		local range=$(( $arg_position + 1 ))"-"$(( $arg_position + $total_args ))
-		function_args=$(echo -n "$testcase" | cut -d" " -f$range)
+		function_args="$(echo -n "$testcase" | cut -d"${TAB}" -f$range)"
 	fi
+	
+	function_args="$(echo -n "$function_args" | tr "${TAB}" " ")"
 
 	ut_logger debug "test_case $test_number: arguments: $function_args"
 
 	local ret_status_position=$(( $arg_position + $total_args + 1 ))
 	local ret_position=$(( $arg_position + $total_args + 2 ))
 
-	local expected_ret_status=$(echo -n "$testcase" | cut -d" " -f$ret_status_position)
-	local is_return_expected=$(echo -n "$testcase" | cut -d" " -f$ret_position)
+	local expected_ret_status=$(echo -n "$testcase" | cut -d"${TAB}" -f$ret_status_position)
+	local is_return_expected=$(echo -n "$testcase" | cut -d"${TAB}" -f$ret_position)
 
 	ut_logger debug "test_case $test_number: expected return code: $expected_ret_status"
 	ut_logger debug "test_case $test_number: return value validation required: $is_return_expected"
@@ -158,7 +166,7 @@ execute_test_case() {
 }
 
 get_test_case_name() {
-	local func_name="$(echo -n "$1" | awk '{print $1}')"
+	local func_name="$(echo -n "$1" | awk -F"${TAB}" '{print $1}')"
 	echo -n "$func_name"
 }
 
@@ -204,6 +212,11 @@ run_test_suite() {
 
 	while [ $i -le $TOTAL_TESTS ]; do
 		local test_case="$(get_test_case $i)"
+
+		if [ -z "$test_case" ]; then
+			i=$((i + 1))
+			continue
+		fi
 		
 		ut_logger debug "-----------------------------------------"
 		ut_logger debug "test case $i"
