@@ -72,9 +72,9 @@ exec_post_test_case() {
 
 	local value
 
-	ut_logger debug "exec_post_test_case(): $func_name args: $func_arg"
+	ut_logger debug "exec_post_test_case(): $func_name arg to function : $func_arg"
 
-	value=$(eval \$func_name $func_arg 2>&-)
+	value="$(eval \$func_name "$func_arg" 2>&-)"
 	local rc=$?
 	if [ $rc -ne 0 ]; then
 		ut_logger error "$func_name() return non-zero error code($rc)"
@@ -102,6 +102,7 @@ validate_return_value() {
 		return 1
 	fi
 
+	ut_logger debug "Return value validation success. Expected: $expected_val. Original: $obtained_val"
 	return 0
 }
 
@@ -157,9 +158,12 @@ execute_test_case() {
 	if [ x"$is_return_expected" = x"1" ]; then
 		validate_return_value $test_number "$value"
 		if [ $? -ne 0 ]; then
+			echo -n "$value"
 			return 1
 		fi
 	fi
+
+	ut_logger debug "Test case return code and value validation success"
 
 	echo -n "$value"
 	return 0
@@ -200,10 +204,15 @@ run_test_suite() {
 	local i=1
 	local ret_value
 	local fail_tests all_tests
+	
+	ut_logger info "Library under test is: $LIBRARY_TO_TEST"
+
+	ut_logger info "" 
 
 	ut_logger info "TEST RUN:"
 	
 	ut_logger info "-----------------------------------------"
+
 
 	[ -z "$LIBRARY_TO_TEST" ] && return 1
 

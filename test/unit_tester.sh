@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# set -x
+
 LIBRARY_TO_TEST="./test_library.sh"
 
 # See README file for explanation about the framework and how to write test cases.
@@ -12,7 +14,7 @@ TEST_CASE1="library_function1	0	0	0"
 TEST_CASE3="library_function2	2	test	file	1	1"
 # Add more test cases here.
 
-expected_return_value_test2() {
+expected_return_value_test3() {
 
 	echo -n "test1"
 	return 0
@@ -29,7 +31,7 @@ post_test_case1() {
 	return 0
 }
 
-post_test_case2() {
+post_test_case3() {
 	echo -n "post test case execution 2 args: $1"
 	return 0
 }
@@ -40,7 +42,6 @@ DEBUG_MODE=0
 
 if [ $# -eq 1 ] && [ "$1" = "-d" ] ; then
 	DEBUG_MODE=1
-	set -x
 fi
 
 . $(pwd)/../shell_unit_tester.sh
