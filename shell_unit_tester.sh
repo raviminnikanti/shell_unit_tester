@@ -74,7 +74,7 @@ exec_post_test_case() {
 
 	ut_logger debug "exec_post_test_case(): $func_name arg to function : $func_arg"
 
-	value="$(eval \$func_name "$func_arg" 2>&-)"
+	value="$(eval \$func_name \"$func_arg\" 2>&-)"
 	local rc=$?
 	if [ $rc -ne 0 ]; then
 		ut_logger error "$func_name() return non-zero error code($rc)"
@@ -179,7 +179,7 @@ log_untested_functions() {
 	local library_name="$2"
 	local count=0
 
-	local all_func="$(grep -E "^ *[-_a-z0-9A-Z]* *[(][)]" "$library_name" | sed 's/#.*//g'| sed 's/[(){]//g')"
+	local all_func="$(grep -E "^ *[-_a-z0-9A-Z]* *[(][)]" "$library_name" | sed 's/#.*//g'| sed 's/[(){].*//g')"
 
 	all_func="$(echo -n "$all_func" | tr '\n' ' ')"
 
